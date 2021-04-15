@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require "shell"
+require "console"
+require "natas"
+
+shell = Shell.new
+shell.run
+
