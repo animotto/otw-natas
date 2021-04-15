@@ -6,7 +6,11 @@ Gem::Specification.new do |s|
   s.authors = ["anim"]
   s.email = "me@telpart.ru"
   s.homepage = "https://github.com/animotto/otw-natas"
-  # s.files = []
+  s.files = [
+    "lib/shell.rb",
+    "lib/console.rb",
+    "lib/natas.rb",
+  ]
   s.executables = ["natas"]
 end
 
