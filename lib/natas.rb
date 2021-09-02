@@ -67,16 +67,13 @@ class NatasLevelBase
     self.class::LEVEL
   end
 
-  def get(query, headers = {}, data = nil)
-    headers.merge!(
-      {
-        'Authorization' => "Basic #{Base64.strict_encode64("#{@login}:#{@password}")}"
-      }
-    )
+  def get(query, headers = {})
+    request = Net::HTTP::Get.new(query, headers)
+    request.basic_auth(@login, @password)
 
-    response = data.nil? ? @client.get(query, headers) : @client.post(query, data, headers)
+    response = @client.request(request)
 
-    raise StandardError, 'Unauthorized' if response.instance_of?(Net::HTTPForbidden)
+    raise StandardError, 'Unauthorized' if response.instance_of?(Net::HTTPUnauthorized)
 
     response
   end
@@ -240,13 +237,14 @@ class NatasLevel6 < NatasLevelBase
     data = get('/includes/secret.inc').body
     match = /\$secret = "(\w{19})";/.match(data)
     not_found unless match
-    data = URI.encode_www_form(
+    data = post(
+      '/',
+      {},
       {
         'submit' => '',
         'secret' => match[1]
       }
-    )
-    data = get('/', {}, data).body
+    ).body
     match = /The password for natas7 is (\w{32})/.match(data)
     not_found unless match
     found(match[1])
@@ -276,15 +274,13 @@ class NatasLevel8 < NatasLevelBase
     match = /\$encodedSecret&nbsp;=&nbsp;"(\w{32})";/.match(data)
     not_found unless match
     secret = Base64.decode64([match[1]].pack('H*').reverse)
-    data = get(
+    data = post(
       '/',
       {},
-      URI.encode_www_form(
-        {
-          'submit' => '',
-          'secret' => secret
-        }
-      )
+      {
+        'submit' => '',
+        'secret' => secret
+      }
     ).body
     match = /The password for natas9 is (\w{32})/.match(data)
     not_found unless match
@@ -410,6 +406,7 @@ class NatasLevel12 < NatasLevelBase
     log('Uploading file')
     data = post(PAGE, {}, data, multipart: true).body
     match = %r{The file <a href="(upload/\w+.php)">}.match(data)
+    not_found unless match
     file = "/#{match[1]}"
     log("Getting file #{file}")
     data = get(file).body
