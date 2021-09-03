@@ -661,4 +661,17 @@ end
 # Level 22
 class NatasLevel22 < NatasLevelBase
   LEVEL = 22
+  PAGE = '/?revelio'
+
+  def exec
+    data = get(PAGE).body
+    match = %r(Password: (\w{32})</pre>).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 23
+class NatasLevel23 < NatasLevelBase
+  LEVEL = 23
 end
