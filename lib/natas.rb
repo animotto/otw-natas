@@ -674,4 +674,17 @@ end
 # Level 23
 class NatasLevel23 < NatasLevelBase
   LEVEL = 23
+  PAGE = '/?passwd=11iloveyou'
+
+  def exec
+    data = get(PAGE).body
+    match = %r(Password: (\w{32})</pre>).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 24
+class NatasLevel24 < NatasLevelBase
+  LEVEL = 24
 end
