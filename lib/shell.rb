@@ -40,11 +40,12 @@ class Shell
     puts @console.yellow("Type #{cmd_help.name} or #{cmd_help.aliases.first} for list of commands")
 
     loop do
-      line = Readline.readline(@console.green.bold(PROMPT))
+      line = Readline.readline(@console.green.bold(PROMPT), true)
       exit if line.nil?
       line.strip!
       next if line.empty?
 
+      Readline::HISTORY.pop if Readline::HISTORY.length > 1 && Readline::HISTORY[-2] == line
       words = line.split(/\s+/)
       cmd = words.first.downcase
       command = @commands.detect { |c| c.name == cmd || c.aliases.include?(cmd) }
