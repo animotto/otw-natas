@@ -1,0 +1,16 @@
+name: Tests
+on: push
+jobs:
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup-ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+      - name: rubocop-gem
+        run: gem install rubocop
+      - name: rubocop-run
+        run: rubocop
